@@ -42,6 +42,10 @@ def get_argument_parser() -> argparse.ArgumentParser:
         "--lineage", type=str,
         help="Lineage information to include in ID3 comment."
     )
+    parser.add_argument(
+        "-q", "--quiet", type=bool, default=False, help="quiet output",
+        action=argparse.BooleanOptionalAction
+    )
     return parser
 
 def make_output_path(in_path: Path, preset: str) -> Path:
@@ -50,7 +54,8 @@ def make_output_path(in_path: Path, preset: str) -> Path:
     return in_path.parent / in_path.name.replace("FLAC", preset)
 
 def transcode_flac_to_mp3(
-        preset: str, lineage: Optional[str], out_dir_path: Path, in_path: Path
+        preset: str, lineage: Optional[str], quiet: bool,
+        out_dir_path: Path, in_path: Path
 ) -> Path:
     out_path = out_dir_path / in_path.with_suffix(".mp3").name
 
@@ -58,15 +63,16 @@ def transcode_flac_to_mp3(
         ["flac", "--version"], encoding="utf-8"
     ).strip()
     flac_sp = subprocess.Popen(
-        ["flac", "-d", "-c", in_path],
-        stdout=subprocess.PIPE
+        ["flac", "-d", "-c", in_path], stdout=subprocess.PIPE,
+        **({"stderr": subprocess.DEVNULL} if quiet else {})
     )
 
     # we need to use the identifiable lame encoder
     encoder_opts = ["-V", "0"] if preset == "V0" else ["-b", "320"]
     subprocess.run(
         ["lame", *encoder_opts, "--add-id3v2", "-", out_path],
-        stdin=flac_sp.stdout, check=True
+        stdin=flac_sp.stdout, check=True,
+        **({"stderr": subprocess.DEVNULL} if quiet else {})
     )
 
     flac = FLAC(in_path)
@@ -183,7 +189,7 @@ def main():
             mp3_paths = list(pool.imap(
                 partial(
                     transcode_flac_to_mp3,
-                    args.preset, args.lineage, out_path
+                    args.preset, args.lineage, args.quiet, out_path
                 ),
                 flac_paths
             ))
