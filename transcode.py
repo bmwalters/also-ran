@@ -120,6 +120,18 @@ def transcode_flac_to_mp3(
     ] if s is not None))
     mp3["comment"] = new_comment
 
+    if len(flac.pictures) > 0:
+        assert len(flac.pictures) == 1, "not smart enough to handle >1 pictures"
+        mp3._EasyID3__id3.add(
+            mutagen.id3.APIC(
+                encoding=mutagen.id3.Encoding.LATIN1,
+                mime=flac.pictures[0].mime,
+                type=flac.pictures[0].type,
+                desc=flac.pictures[0].desc,
+                data=flac.pictures[0].data
+            )
+        )
+
     mp3.save(None, v1=0, v2_version=3)
 
     return out_path
