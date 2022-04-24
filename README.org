@@ -32,3 +32,16 @@ Makes flac metadata match a folder of headers (e.g. .flac.parts from ~transmissi
 6. ~mv ./out/demo/* ./torrents/demo/~
 7. ~transmission-remote -t 32 --verify~
 8. ~transmission-remote -t 32 --start~
+** transcode.py
+Usage: ~./transcode.py --help~
+
+Transcodes a directory of FLAC files to MP3 and copies auxilary files.
+
+#+BEGIN_SRC shell
+$ ls ./DemoFLAC
+'01 - Intro.flac' Demo.cue Demo.m3u8
+$ ./transcode-py -i ./DemoFLAC --preset 320
+...
+$ ls ./Demo320
+'01 - Intro.mp3' Demo.cue Demo.m3u8
+#+END_SRC
