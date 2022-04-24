@@ -6,11 +6,13 @@ import io
 import multiprocessing
 from mutagen.easyid3 import EasyID3
 from mutagen.flac import FLAC
+import mutagen.id3
 import re
 from os import cpu_count
 from pathlib import Path
 import shutil
 import subprocess
+from typing import Optional
 
 def get_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -36,6 +38,10 @@ def get_argument_parser() -> argparse.ArgumentParser:
         action=argparse.BooleanOptionalAction,
         help="on to transcode + copy other files, off to copy only"
     )
+    parser.add_argument(
+        "--lineage", type=str,
+        help="Lineage information to include in ID3 comment."
+    )
     return parser
 
 def make_output_path(in_path: Path, preset: str) -> Path:
@@ -44,10 +50,13 @@ def make_output_path(in_path: Path, preset: str) -> Path:
     return in_path.parent / in_path.name.replace("FLAC", preset)
 
 def transcode_flac_to_mp3(
-        preset: str, out_dir_path: Path, in_path: Path
+        preset: str, lineage: Optional[str], out_dir_path: Path, in_path: Path
 ) -> Path:
     out_path = out_dir_path / in_path.with_suffix(".mp3").name
 
+    flac_version = subprocess.check_output(
+        ["flac", "--version"], encoding="utf-8"
+    ).strip()
     flac_sp = subprocess.Popen(
         ["flac", "-d", "-c", in_path],
         stdout=subprocess.PIPE
@@ -91,6 +100,18 @@ def transcode_flac_to_mp3(
             f"found disctotal & non-int discnumber {discnumber} in {in_path}"
         mp3["discnumber"] = f"{discnumber[0]}/{disctotal}"
 
+    # combine comment fields as multi-valued tags are tricky
+    # (variable separator character, lack of ffprobe support for \0 separator)
+    existing_comments = [*mp3["comment"], ""] \
+        if "comment" in mp3.keys() and mp3["comment"] else []
+    new_comment = "\n".join((s for s in [
+        *existing_comments,
+        lineage,
+        f"Decoded with {flac_version}. Encoded with 'lame {' '.join(encoder_opts)}'.",
+        "Tags mapped using EasyID3 from https://github.com/quodlibet/mutagen."
+    ] if s is not None))
+    mp3["comment"] = new_comment
+
     mp3.save(None, v1=0, v2_version=3)
 
     return out_path
@@ -118,9 +139,35 @@ def fixup_m3u8(infile: str, outfile: str) -> None:
                     re.sub(pattern=r"\.flac(\s*)$", repl=".mp3\\1", string=line)
                 )
 
+# https://github.com/TravisCardwell/mutagen/commit/965724eae83b7cd7bd4ad20c9bb3bf7fe0bc9626
+def EasyID3_RegisterCommentKey(lang="\0\0\0", desc=""):
+    """Register a comment key, stored in a COMM frame.
+    By default, comments use a null language and empty description, for
+    compatibility with other tagging software.  Call this method with
+    other parameters to override the defaults.::
+        EasyID3.RegisterCOMMKey(lang='eng')
+    """
+    frameid = ":".join(("COMM", desc, lang))
+
+    def getter(id3, key):
+        frame = id3.get(frameid)
+        return None if frame is None else list(frame)
+
+    def setter(id3, key, value):
+        id3.add(mutagen.id3.COMM(encoding=3, lang=lang, desc=desc, text=value))
+
+    def deleter(id3, key):
+        del id3[frameid]
+
+    EasyID3.RegisterKey("comment", getter, setter, deleter)
+
 def main():
-    EasyID3.RegisterTextKey("tracktotal", "TRCK")
-    EasyID3.RegisterTextKey("totaltracks", "TRCK")
+    easyid3_valid_keys = EasyID3.valid_keys.keys()
+    if "tracktotal" not in easyid3_valid_keys:
+        EasyID3.RegisterTextKey("tracktotal", "TRCK")
+        EasyID3.RegisterTextKey("totaltracks", "TRCK")
+    if "comment" not in easyid3_valid_keys:
+        EasyID3_RegisterCommentKey()
 
     args = get_argument_parser().parse_args()
 
@@ -134,7 +181,10 @@ def main():
         with multiprocessing.Pool(args.jobs) as pool:
             flac_paths = list(args.in_path.glob("*.flac"))
             mp3_paths = list(pool.imap(
-                partial(transcode_flac_to_mp3, args.preset, out_path),
+                partial(
+                    transcode_flac_to_mp3,
+                    args.preset, args.lineage, out_path
+                ),
                 flac_paths
             ))
 
