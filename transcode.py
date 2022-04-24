@@ -90,6 +90,8 @@ def transcode_flac_to_mp3(
             assert disctotal is None and len(flac[tag]) == 1, \
                 f"found multiple disctotal in {in_path}"
             disctotal = flac[tag][0]
+        elif tag == "encoder":
+            continue
         else:
             assert tag in EasyID3.valid_keys.keys(), \
                 f"unknown metadata tag {tag} in {in_path}"
@@ -146,7 +148,7 @@ def fixup_m3u8(infile: str, outfile: str) -> None:
                 )
 
 # https://github.com/TravisCardwell/mutagen/commit/965724eae83b7cd7bd4ad20c9bb3bf7fe0bc9626
-def EasyID3_RegisterCommentKey(lang="\0\0\0", desc=""):
+def EasyID3_RegisterCommentKey(key: str, lang="\0\0\0", desc=""):
     """Register a comment key, stored in a COMM frame.
     By default, comments use a null language and empty description, for
     compatibility with other tagging software.  Call this method with
@@ -165,15 +167,42 @@ def EasyID3_RegisterCommentKey(lang="\0\0\0", desc=""):
     def deleter(id3, key):
         del id3[frameid]
 
-    EasyID3.RegisterKey("comment", getter, setter, deleter)
+    EasyID3.RegisterKey(key, getter, setter, deleter)
 
 def main():
     easyid3_valid_keys = EasyID3.valid_keys.keys()
     if "tracktotal" not in easyid3_valid_keys:
         EasyID3.RegisterTextKey("tracktotal", "TRCK")
         EasyID3.RegisterTextKey("totaltracks", "TRCK")
+    if "album artist" not in easyid3_valid_keys:
+        EasyID3.RegisterTextKey("album artist", "TPE2")
+    if "label" not in easyid3_valid_keys:
+        EasyID3.RegisterTextKey("label", "TPUB")
+    if "itunescompilation" not in easyid3_valid_keys:
+        EasyID3.RegisterTextKey("itunescompilation", "TCMP")
+    if "description" not in easyid3_valid_keys:
+        EasyID3_RegisterCommentKey("description")
     if "comment" not in easyid3_valid_keys:
-        EasyID3_RegisterCommentKey()
+        EasyID3_RegisterCommentKey("comment")
+    if "itunes_cddb_1" not in easyid3_valid_keys:
+        EasyID3.RegisterTXXXKey("itunes_cddb_1", "ITUNES_CDDB_1")
+    if "labelno" not in easyid3_valid_keys:
+        EasyID3.RegisterTXXXKey("labelno", "CATALOGNUMBER")
+    if "mcn" not in easyid3_valid_keys:
+        EasyID3.RegisterTXXXKey("mcn", "MCN")
+    if "upc" not in easyid3_valid_keys:
+        EasyID3.RegisterTXXXKey("upc", "UPC")
+    if "release country" not in easyid3_valid_keys:
+        EasyID3.RegisterTXXXKey("release country", "MusicBrainz Album Release Country")
+    if "replaygain_track_peak" not in easyid3_valid_keys:
+        EasyID3.RegisterTXXXKey("replaygain_track_peak", "REPLAYGAIN_TRACK_PEAK")
+    if "replaygain_track_gain" not in easyid3_valid_keys:
+        EasyID3.RegisterTXXXKey("replaygain_track_gain", "REPLAYGAIN_TRACK_GAIN")
+    # bandcamp
+    if "cataloguenumber" not in easyid3_valid_keys:
+        EasyID3.RegisterTXXXKey("cataloguenumber", "CATALOGNUMBER")
+    if "publisher" not in easyid3_valid_keys:
+        EasyID3.RegisterTXXXKey("publisher", "PUBLISHER")
 
     args = get_argument_parser().parse_args()
 

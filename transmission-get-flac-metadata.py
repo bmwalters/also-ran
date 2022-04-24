@@ -17,6 +17,13 @@ GET_TORRENT_ARGS = (
     "downloadDir", "downloadLimit", "downloadLimited"
 )
 
+# TODO: Implement these
+def _infer_header_schema_from_single_header():
+    pass
+
+def _header_schema_to_tags():
+    pass
+
 def get_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="""Retrieve metadata from flac files within a torrent.
@@ -123,6 +130,7 @@ def check_flac_headers(session: Session, torrent: Torrent):
     for file in torrent.files():
         if not file.name.endswith(".flac"):
             continue
+        # TODO: Implement feedback loop where we download a little more, up to threshold (2 MB?)
         audio = FLAC(_get_file_path(session, torrent, file))
         assert audio.tags["title"] is not None
 
