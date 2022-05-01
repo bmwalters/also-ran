@@ -143,10 +143,12 @@ def fixup_cue(infile: str, outfile: str) -> None:
         with io.open(infile, "r", encoding="iso-8859-1", newline="") as infile:
             for line in infile:
                 if line.startswith("FILE "):
-                    assert ".wav" in line
+                    assert ".wav" in line or ".flac" in line
                     assert "WAVE" in line
                     outfile.write(
-                        line.replace(".wav", ".mp3").replace("WAVE", "MP3")
+                        line.replace(".wav", ".mp3")
+                            .replace(".flac", ".mp3")
+                            .replace("WAVE", "MP3")
                     )
                 else:
                     outfile.write(line)
