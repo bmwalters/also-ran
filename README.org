@@ -16,14 +16,20 @@ Retrieves metadata from flac files within a torrent without downloading entire f
 ** flac-match-headers.py
 Usage: ~./flac-match-headers.py --help~
 
-Makes flac metadata match a folder of headers (e.g. .flac.parts from ~transmission-get-flac-metadata.py~).
+Makes metadata of flac files in an input directory match flac header files (e.g. .flac.parts from ~transmission-get-flac-metadata.py~) in another directory.
 
-1. Check the log for the torrent you're trying to match to determine EAC + libFLAC version to use.
-2. Rip your release to ~./rips~ with said EAC + libFLAC version.
-3. Compare TOC and CRCs to the torrent you're trying to match. If these differ then either your CD ripper is misconfigured or your CD is of a [[https://wiki.hydrogenaud.io/index.php?title=Comparison_of_CD_rippers#AccurateRip_checking_across_pressings.2Foffsets][different pressing]].
-4. Make a temporary output directory then run the script
+1. Rip your release to e.g. ~./rips~.
+2. Make a temporary output directory then run the script with basic options
    ~./flac-match-headers.py --headers ./torrents/demo --in ./rips/demo --out ./out/demo~
-5. Verify matching with ~metaflac~
+3. When you get an ~AudioDiffersError~, decide which of the following is true:
+   - You have a significantly different release (e.g. different TOC or peak levels) and matching will always fail.
+   - Your audio extraction software is misconfigured.
+   - The track should simply be skipped with ~--skip-track N~ (e.g. first/last tracks may differ in a few samples).
+     You might have a [[https://wiki.hydrogenaud.io/index.php?title=Comparison_of_CD_rippers#AccurateRip_checking_across_pressings.2Foffsets][different pressing]].
+4. It may be required to re-encode your rips if a different encoder version or config was used for the target.
+   In this case, pass ~--flac ./path/to/appropriate/flac/version --flac-args '-original -args'~.
+   You can also add various ~flac~ versions to your path; the script will look for ~flac-1.x.x~ before prompting.
+5. After the script completes, verify matching with ~metaflac~
    #+BEGIN_SRC shell
    $ metaflac "./torrents/demo/01 - Intro.flac" --list > a
    $ metaflac "./out/demo/01 - Intro.flac" --list > b
