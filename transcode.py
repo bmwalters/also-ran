@@ -136,7 +136,7 @@ def transcode_flac_to_mp3(
 
     return out_path
 
-# TODO: Real m3u8/cue parsing; ensure filenames exist as specified.
+# TODO: Real m3u/cue parsing; ensure filenames exist as specified.
 
 def fixup_cue(infile: str, outfile: str) -> None:
     with io.open(outfile, "w", encoding="iso-8859-1") as outfile:
@@ -153,7 +153,7 @@ def fixup_cue(infile: str, outfile: str) -> None:
                 else:
                     outfile.write(line)
 
-def fixup_m3u8(infile: str, outfile: str) -> None:
+def fixup_m3u(infile: str, outfile: str) -> None:
     with io.open(outfile, "w") as outfile:
         with io.open(infile, "r", newline="") as infile:
             for line in infile:
@@ -244,8 +244,8 @@ def main():
             continue
         elif extra_in_path.suffix == ".cue":
             fixup_cue(extra_in_path, extra_out_path)
-        elif extra_in_path.suffix == ".m3u8":
-            fixup_m3u8(extra_in_path, extra_out_path)
+        elif extra_in_path.suffix in (".m3u8", ".m3u"):
+            fixup_m3u(extra_in_path, extra_out_path)
         else:
             assert extra_in_path.suffix in {".jpg", ".jpeg", ".png", ".log"}, \
                 f"unknown extra file {extra_in_path} found in input path"
