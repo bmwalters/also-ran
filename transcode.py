@@ -237,10 +237,12 @@ def main():
                 flac_paths
             ))
 
-    for extra_in_path in args.in_path.iterdir():
-        extra_out_path = out_path / extra_in_path.name
+    for extra_in_path in sorted(args.in_path.glob("**/*")):
+        extra_out_path = out_path / extra_in_path.relative_to(args.in_path)
 
-        if extra_in_path.suffix == ".flac":
+        if extra_in_path.is_dir():
+            extra_out_path.mkdir(parents=True, exist_ok=True)
+        elif extra_in_path.suffix == ".flac":
             continue
         elif extra_in_path.suffix == ".cue":
             fixup_cue(extra_in_path, extra_out_path)
