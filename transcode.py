@@ -83,11 +83,11 @@ def transcode_flac_to_mp3(
 
     for tag in flac:
         if tag == "totaltracks" or tag == "tracktotal":
-            assert tracktotal is None and len(flac[tag]) == 1, \
+            assert len(set(x for x in (tracktotal, *flac[tag]) if x)) == 1, \
                 f"found multiple tracktotal in {in_path}"
             tracktotal = flac[tag][0]
         elif tag == "disctotal" or tag == "totaldiscs":
-            assert disctotal is None and len(flac[tag]) == 1, \
+            assert len(set(x for x in (disctotal, *flac[tag]) if x)) == 1, \
                 f"found multiple disctotal in {in_path}"
             disctotal = flac[tag][0]
         elif tag == "encoder":
