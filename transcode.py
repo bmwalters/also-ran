@@ -249,7 +249,8 @@ def main():
         elif extra_in_path.suffix in (".m3u8", ".m3u"):
             fixup_m3u(extra_in_path, extra_out_path)
         else:
-            assert extra_in_path.suffix in {".jpg", ".jpeg", ".png", ".log"}, \
+            known_extensions = {".jpg", ".jpeg", ".png", ".log", ".txt"}
+            assert extra_in_path.suffix in known_extensions, \
                 f"unknown extra file {extra_in_path} found in input path"
             shutil.copy(extra_in_path, extra_out_path)
 
